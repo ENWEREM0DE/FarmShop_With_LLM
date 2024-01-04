@@ -1,3 +1,8 @@
 # Dependencies
 frontend/node_modules/
 backend/node_modules/
+
+# IDE Specific folders
+.idea
+
+.DS_Store
