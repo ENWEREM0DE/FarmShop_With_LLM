@@ -1,33 +1,44 @@
-import React, {useState} from 'react'
+import React, {useContext, useRef, useState} from 'react'
 import './Navbar.css'
 import logo from '../Assets/logo.png'
-import cart_icon  from '../Assets/cart_icon.png'
+import cart_icon from '../Assets/cart_icon.png'
 import {Link} from "react-router-dom";
+import {ShopContext} from '../../Context/ShopContext'
+import nav_dropdown from '../Assets/nav_dropdown.png'
+
 const Navbar = () => {
-    const [menu, setMenu] = useState("shop")
-  return (
-    <div className={'navbar'}>
-      <div className={'nav-logo'}>
-        <img src={logo} alt={""}/>
-        <p>9JA FARMS</p>
-      </div>
-        <ul className={"nav-menu"}>
-            <li onClick={()=>{setMenu("shop")}}><Link style={{textDecoration: 'none'}} to={'/'}> Shop </Link>{menu === "shop"? <hr /> : <> </>}</li>
-            <li onClick={()=>{setMenu("fruits")}}><Link style={{textDecoration: 'none'}} to={'/fruits'}>Fruits</Link> {menu === "fruits"? <hr /> : <> </>}</li>
-            <li onClick={()=>{setMenu("vegetables")}}><Link style={{textDecoration: 'none'}} to={'/vegetables'}>Vegetables</Link> {menu === "vegetables"? <hr /> : <> </>}</li>
-            <li onClick={()=>{setMenu("animals")}}><Link style={{textDecoration: 'none'}} to={'/animalProducts'}>Animal Products</Link> {menu === "animals"? <hr /> : <> </>}</li>
-            <li onClick={()=>{setMenu("packaged")}}><Link style={{textDecoration: 'none'}} to={'/packagedFoods'}>Packaged Foods</Link> {menu === "packaged"? <hr /> : <> </>}</li>
-            <li onClick={()=>{setMenu("supplies")}}><Link style={{textDecoration: 'none'}} to={'farmSupplies'}>Farm Supplies</Link> {menu === "supplies"? <hr /> : <> </>}</li>
-        </ul>
-        <div className={"nav-login-cart"}>
-            <Link style={{textDecoration: 'none'}} to={'/login'}><button>Login</button></Link>
-            <Link style={{textDecoration: 'none'}} to={'/cart'}><img src={cart_icon} alt={""}/></Link>
-            <div className={"nav-cart-count"}>
-                10
+
+    const [menu,setMenu] = useState("shop");
+    const {getTotalCartItems}= useContext(ShopContext);
+    const menuRef = useRef();
+
+    const dropdown_toggle = (e) => {
+        menuRef.current.classList.toggle('nav-menu-visible');
+        e.target.classList.toggle('open');
+    }
+
+    return (
+        <div className='navbar'>
+            <Link style={{textDecoration:"none"}} to='/' onClick={()=>{setMenu("shop")}} className="nav-logo">
+                <img src={logo} alt="" />
+                <p>SHOPPER</p>
+            </Link>
+            <img onClick={dropdown_toggle} className='nav-dropdown' src={nav_dropdown} alt="" />
+            <ul ref = {menuRef} className = {"nav-menu"} >
+                <li onClick = {()=> {setMenu("shop")}}><Link style={{textDecoration:"none"}} to='/'>Shop< /Link>{menu==="shop"?<hr/>:<></>}</li>
+                <li onClick={() => {setMenu("plantProduce")}}><Link style={{textDecoration:"none"}} to={'/plantProduce'}>Plant Produce</Link>{menu==="plantProduce"?<hr/>:<></>}</li>
+                <li onClick={() => {setMenu("animalProduce")}}><Link style={{textDecoration:"none"}} to={'/animalProduce'}>Animal Produce</Link>{menu==="animalProduce"?<hr/>:<></>}</li>
+                <li onClick={() => {setMenu("packaged")}}><Link style={{textDecoration:"none"}} to={'/packagedFoods'}>Packaged Foods</Link>{menu==="packaged"?<hr/>:<></>}</li>
+                <li onClick={() => {setMenu("supplies")}}><Link style={{textDecoration:"none"}} to={'farmSupplies'}>Farm Supplies</Link>{menu==="supplies"?<hr/>:<></>}</li>
+            </ul>
+            <div className="nav-login-cart">
+                <Link to='/login'><button>Login</button></Link>
+                <Link to='/cart'><img src={cart_icon} alt="" /></Link>
+                <div className="nav-cart-count">{getTotalCartItems()}</div>
             </div>
         </div>
-    </div>
-  )
+    )
 }
 
 export default Navbar
+

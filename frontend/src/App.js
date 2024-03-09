@@ -7,6 +7,10 @@ import Product from "./Pages/Product";
 import Cart from "./Pages/Cart";
 import LoginSignup from "./Pages/LoginSignup";
 import Footer from "./Components/Footer/Footer";
+import plant_banner from "./Components/Assets/plant_banner.jpeg"
+import animal_banner from "./Components/Assets/animal_banner.jpeg"
+import packaged_banner from "./Components/Assets/packaged_banner.jpeg"
+import supplies_banner from "./Components/Assets/supplies_banner.jpeg"
 
 function App() {
   return (
@@ -15,11 +19,10 @@ function App() {
             <Navbar />
             <Routes>
                 <Route path={'/'} element={<Shop/>}/>
-                <Route path={'/fruits'} element={<ShopCategory category={"fruits"}/>}/>
-                <Route path={'/vegetables'} element={<ShopCategory category={"vegetables"}/>}/>
-                <Route path={'/animalProducts'} element={<ShopCategory category={"animalProducts"}/>}/>
-                <Route path={'/packagedFoods'} element={<ShopCategory category={"packagedFoods"}/>}/>
-                <Route path={'/farmSupplies'} element={<ShopCategory category={"farmSupplies"}/>}/>
+                <Route path={'/plantProduce'} element={<ShopCategory banner={plant_banner} category={"plantProduce"}/>}/>
+                <Route path={'/animalProduce'} element={<ShopCategory banner={animal_banner} category={"animalProduce"}/>}/>
+                <Route path={'/packagedFoods'} element={<ShopCategory banner={packaged_banner} category={"packagedFoods"}/>}/>
+                <Route path={'/farmSupplies'} element={<ShopCategory banner={supplies_banner} category={"farmSupplies"}/>}/>
                 <Route path={'/product'} element={<Product />}>
                     <Route path={':productId'} element={<Product/>}/>
                 </Route>
