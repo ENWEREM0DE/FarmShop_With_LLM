@@ -32,6 +32,21 @@ app.post("/upload", upload.single('product'), (req, res) => {
     })
 })
 
+
+const fetchuser = async (req, res, next) => {
+    const token = req.header("auth-token");
+    if (!token) {
+        res.status(401).send({ errors: "Please authenticate using a valid token" });
+    }
+    try {
+        const data = jwt.verify(token, "secret_ecom");
+        req.user = data.user;
+        next();
+    } catch (error) {
+        res.status(401).send({ errors: "Please authenticate using a valid token" });
+    }
+};
+
 // Schema for creating user model
 const Users = mongoose.model("Users", {
     name: {
@@ -186,6 +201,7 @@ app.post("/removeproduct", async (req, res) => {
 
 app.get("/allproducts", async (req, res) => {
     let products = await Product.find({});
+    console.log("Called")
     console.log("All Products");
     res.send(products);
 });
@@ -193,7 +209,48 @@ app.get("/allproducts", async (req, res) => {
 
 app.use('/images', express.static('upload/images'));
 
+app.get("/newcollections", async (req, res) => {
+    let products = await Product.find({});
+    let arr = products.slice(1).slice(-8);
+    console.log("New Collections");
+    res.send(arr);
+});
 
+app.get("/popularinproduce", async (req, res) => {
+    console.log("Called")
+    let products = await Product.find({});
+    let arr = products.splice(0,  4);
+    console.log("Popular Farm Produce");
+    res.send(arr);
+});
+
+app.post('/addtocart', fetchuser, async (req, res) => {
+    console.log("Add Cart");
+    let userData = await Users.findOne({_id:req.user.id});
+    userData.cartData[req.body.itemId] += 1;
+    await Users.findOneAndUpdate({_id:req.user.id}, {cartData:userData.cartData});
+    res.send("Added")
+})
+
+//Create an endpoint for saving the product in cart
+app.post('/removefromcart', fetchuser, async (req, res) => {
+    console.log("Remove Cart");
+    let userData = await Users.findOne({_id:req.user.id});
+    if(userData.cartData[req.body.itemId]!=0)
+    {
+        userData.cartData[req.body.itemId] -= 1;
+    }
+    await Users.findOneAndUpdate({_id:req.user.id}, {cartData:userData.cartData});
+    res.send("Removed");
+})
+
+//Create an endpoint for saving the product in cart
+app.post('/getcart', fetchuser, async (req, res) => {
+    console.log("Get Cart");
+    let userData = await Users.findOne({_id:req.user.id});
+    res.json(userData.cartData);
+
+})
 app.listen(port, (error) => {
     if (!error) console.log("Server Running on port " + port);
     else console.log("Error : ", error);
