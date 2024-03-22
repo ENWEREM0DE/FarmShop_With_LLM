@@ -156,20 +156,21 @@ const Product = mongoose.model("Product", {
         type: Boolean,
         default: true,
     },
+    comments: [
+        {
+            text: String,
+            created: {type: Date, default: Date.now()}
+        }
+    ],
     positiveReviews: {
         type: Number,
         default: 0
     },
-    NeutralReviews: {
-        type: Number,
-        default: 0
-    },
-    NegativeReviews: {
+    negativeReviews: {
         type: Number,
         default: 0
     }
 });
-
 app.post("/addproduct", async (req, res) => {
     let products = await Product.find({});
     let id;
@@ -198,6 +199,28 @@ app.post("/removeproduct", async (req, res) => {
     console.log("Removed");
     res.json({success:true,name:req.body.name})
 });
+
+app.post("/addComment", async (req, res) => {
+    id =  req.body.id
+    const newComment = req.body.comment;
+    const commentAnalysis = req.body.analysis;
+    if (commentAnalysis === "POSITIVE" ) {
+        await Product.findOneAndUpdate({id: req.body.id}, {
+            $inc: {
+                positiveReviews: 1
+            },
+            $push: {comments: {text: newComment}}
+        })
+    } else {
+        await Product.findOneAndUpdate({id: req.body.id}, {
+            $inc: {
+                negativeReviews: 1
+            },
+            $push: {comments: {text: newComment}}
+        })
+    }
+    res.json({success:true,id:id,comment:newComment,analysis:commentAnalysis})
+})
 
 app.get("/allproducts", async (req, res) => {
     let products = await Product.find({});
