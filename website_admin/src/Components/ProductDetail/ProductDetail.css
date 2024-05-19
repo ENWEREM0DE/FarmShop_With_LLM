@@ -1,0 +1,33 @@
+.product-detail {
+    padding: 20px;
+}
+
+.product-detail img {
+    max-width: 100%;
+    height: auto;
+}
+
+.product-comments {
+    margin-top: 20px;
+}
+
+.product-comments .comment {
+    background-color: #f9f9f9;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+
+.product-comments .comment p {
+    margin: 0;
+}
+
+.product-comments .comment span {
+    display: block;
+    margin-top: 5px;
+    color: #888;
+}
+
+.descriptionbox-description {
+    margin-top: 20px;
+}

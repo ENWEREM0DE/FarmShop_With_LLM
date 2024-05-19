@@ -1,38 +1,57 @@
+require("dotenv").config();
 const port = 4000;
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
+const sharp = require('sharp');
 const path = require("path");
 const cors = require("cors");
 
 app.use(express.json());
 app.use(cors());
 
-mongoose.connect("mongodb+srv://ENWEREM0DE:farmshopwithllm@cluster0.gfmr2ib.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+//connect to database
+mongoose.connect(process.env.MONGO_DB_URL)
 
+//default api
 app.get("/", (req, res) => {
     res.send("Express App is running");
 });
 
-//Image Storage Engine
-const storage = multer.diskStorage({
-    destination: './upload/images',
-    filename: (req, file, cb) => {
-        console.log(file);
-        return cb(null, `${file.fieldname}_${Date.now()}${path.extname(file.originalname)}`)
+// Setup storage with Multer
+const storage = multer.memoryStorage(); // Use memory storage to hold the file temporarily
+
+const upload = multer({ storage: storage });
+
+// POST route to handle image upload
+app.post("/upload", upload.single('product'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: 0, message: 'No file uploaded' });
+        }
+
+        // Use Sharp to resize the image
+        const filename = `${req.file.fieldname}_${Date.now()}${path.extname(req.file.originalname)}`;
+        const outputPath = path.join(__dirname, 'upload', 'images', filename);
+
+        await sharp(req.file.buffer)
+            .resize(350, 418)
+            .toFile(outputPath);
+
+        res.json({
+            success: 1,
+            image_url: `http://localhost:${port}/images/${filename}`
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: 0, message: 'Error processing image' });
     }
-})
-const upload = multer({storage: storage})
-app.post("/upload", upload.single('product'), (req, res) => {
-    res.json({
-        success: 1,
-        image_url: `http://localhost:${port}/images/${req.file.filename}`
-    })
-})
+});
 
 
+//check if user is log in for cart purposes
 const fetchuser = async (req, res, next) => {
     const token = req.header("auth-token");
     if (!token) {
@@ -68,6 +87,31 @@ const Users = mongoose.model("Users", {
     },
 });
 
+app.get("/users", async (req, res) => {
+    try {
+        const users = await Users.find({});
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+
+// Schema for creating admin model
+const Admins = mongoose.model("Admins", {
+    name: String,
+    email: {
+        type: String,
+        unique: true,
+    },
+    password: String,
+    date: {
+        type: Date,
+        default: Date.now,
+    },
+});
+
+
 //Create an endpoint at ip/login for login the user and giving auth-token
 app.post('/login', async (req, res) => {
     console.log("Login");
@@ -96,7 +140,7 @@ app.post('/login', async (req, res) => {
 })
 
 
-//Create an endpoint at ip/auth for regestring the user in data base & sending token
+//Create an endpoint at ip/auth for registering the user in database & sending token
 app.post('/signup', async (req, res) => {
     console.log("Sign Up");
     let success = false;
@@ -120,11 +164,59 @@ app.post('/signup', async (req, res) => {
             id: user.id
         }
     }
-
     const token = jwt.sign(data, 'secret_ecom');
     success = true;
     res.json({ success, token })
 })
+
+// Create an endpoint at /admin/signup for registering an admin in the database & sending token
+app.post('/adminSignup', async (req, res) => {
+    console.log("user Creation process started")
+    let success = false;
+    let check = await Admins.findOne({ email: req.body.email });
+    if (check) {
+        return res.status(400).json({ success: success, errors: "Existing admin found with this email" });
+    }
+    const admin = new Admins({
+        name: req.body.username,
+        email: req.body.email,
+        password: req.body.password,
+    });
+    await admin.save();
+    const data = {
+        admin: {
+            id: admin.id
+        }
+    }
+    const token = jwt.sign(data, 'secret_ecom');
+    success = true;
+    res.json({ success, token })
+});
+
+// Create an endpoint at /admin/login for logging in the admin and giving auth-token
+app.post('/adminLogin', async (req, res) => {
+
+    let success = false;
+    let admin = await Admins.findOne({ email: req.body.email });
+    if (admin) {
+        const passCompare = req.body.password === admin.password;
+        if (passCompare) {
+            const data = {
+                admin: {
+                    id: admin.id
+                }
+            }
+            success = true;
+            const token = jwt.sign(data, 'secret_ecom');
+            res.json({ success, token });
+        } else {
+            return res.status(400).json({ success: success, errors: "Please try with correct email/password" })
+        }
+    } else {
+        return res.status(400).json({ success: success, errors: "Please try with correct email/password" })
+    }
+});
+
 
 // Schema for creating Product
 const Product = mongoose.model("Product", {
@@ -171,6 +263,67 @@ const Product = mongoose.model("Product", {
         default: 0
     }
 });
+
+// Add this to your existing backend code
+app.get("/product/:id", async (req, res) => {
+    try {
+        const product = await Product.findOne({ id: req.params.id });
+        if (!product) {
+            return res.status(404).send('Product not found');
+        }
+        res.json(product);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+app.post('/products/:id/comments', async (req, res) => {
+    console.log("I got in here")
+    const { text } = req.body;
+    if (!text) {
+        return res.status(400).send('Comment text is required');
+    }
+    try {
+        const product = await Product.findOne({ id: req.params.id });
+        console.log("lookie here")
+        console.log(product)
+        if (!product) {
+            return res.status(404).send('Product not found');
+        }
+        product.comments.push({ text: text });
+        await product.save();
+        res.status(201).json({ comment: { text: text, created: new Date() } });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+app.post('/products/:id/analysis', async (req, res) => {
+    console.log("Got in the analysis part")
+    const { isPositive } = req.body
+    try {
+        const product = await Product.findOne({id: req.params.id});
+        if (isPositive) {
+            console.log("Current positive reviews: ", product.positiveReviews);
+            // Increment the positiveReviews by 1
+            product.positiveReviews = product.positiveReviews + 1;
+            // Save the updated product
+            await product.save();
+            console.log("new positive counter")
+            res.status(200).send("successful request")
+        } else {
+            product.negativeReviews = product.negativeReviews + 1;
+            await product.save();
+            console.log("new negative counter")
+            res.status(200).send("successful request")
+        }
+    } catch(err)  {
+        console.error(err);
+        res.status(404).send("unsuccessful request")
+    }
+
+})
+
 app.post("/addproduct", async (req, res) => {
     let products = await Product.find({});
     let id;
@@ -223,6 +376,7 @@ app.post("/addComment", async (req, res) => {
 })
 
 app.get("/allproducts", async (req, res) => {
+    console.log("hit")
     let products = await Product.find({});
     console.log("Called")
     console.log("All Products");
